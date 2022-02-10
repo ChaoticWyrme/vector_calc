@@ -1,0 +1,57 @@
+ident_char = _{
+    ASCII_ALPHANUMERIC | "_"
+}
+
+ident = @{
+    !ASCII_DIGIT ~ ident_char ~ ident_char*
+}
+
+ident_list = _{ !ASCII_DIGIT ~ ident ~ (" " ~ ident)+ }
+
+bare_number = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
+
+vector = { "<" ~ bare_number ~ ("," ~ bare_number)* ~ ">" }
+
+value = _{ bare_number | vector | ident }
+
+operator = _{ add | subtract | multiply | divide | power | dot | cross }
+    add      = { "+" }
+    subtract = { "-" }
+    multiply = { "*" }
+    divide   = { "/" }
+    power    = { "^" }
+    dot      = { "dot" }
+    cross    = { "cross" }
+
+// operator = { "+" | "-" | "*" | "dot" | "^" | "cross" }
+unary_operator = { "-" }
+
+expression = { value ~ (operator ~ recurse_expr)* }
+recurse_expr = _{ value ~ (operator ~ recurse_expr)* }
+expression_atom = _{ value | /* (expression ~ operator ~ expression) | */ (unary_operator ~ expression) }
+sub_expression_begin = _{ "(" }
+sub_expression_end = _{ ")" }
+
+
+variable_assignment = { ident ~ "=" ~ expression }
+
+parser_command = 
+{ "." ~ (
+	(parser_debug ~ ASCII_DIGIT?) |
+    (parser_modify ~ ident) |
+    parser_exit |
+    (parser_save ~ rest) |
+    (parser_load ~ rest)
+)}
+    parser_bool     = _{ "true" | "false" | "on" | "off" }
+    parser_debug    =  { "debug" }
+    parser_modify   =  { "modify" }
+    parser_exit     =  { "exit" }
+    parser_save     =  { "save" }
+    parser_load     =  { "load" }
+
+rest = { ANY+ }
+
+command = _{ variable_assignment | expression | parser_command }
+
+WHITESPACE = _{ " " }
